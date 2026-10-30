@@ -3,6 +3,7 @@ from utils import HoopaUtils
 from enum import Enum, StrEnum
 from typing import Any
 import yaml
+from io import TextIOWrapper, SEEK_END
 
 
 class PMD2Region(StrEnum):
@@ -44,6 +45,21 @@ class PMD2RegionalData:
             "NA": self.NA,
             "JP": self.JP
         }
+    
+    def write_to_yaml(self, stream: TextIOWrapper, indent: int = 0):
+        indent_str = ""
+        for i in range(indent):
+            indent_str += " "
+        
+        for region in ["EU", "NA", "JP"]:
+            data = getattr(self, region)
+            
+            if data:
+                stream.write("%s%s: %s\n" % (
+                    indent_str, region, data
+                ))
+                
+            
 
 
 class AddressRange:

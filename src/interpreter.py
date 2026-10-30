@@ -1,9 +1,9 @@
 from config import CONFIG_INSTANCE
 from os import path, mkdir, scandir
-from utils import HoopaUtils
+from local_utils.utils import HoopaUtils
 import yaml
 from yaml.parser import Parser
-from local_types.types import PMD2OverlayData
+from local_types.data_types import PMD2OverlayData
 import json
 
 

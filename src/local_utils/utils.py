@@ -2,7 +2,6 @@ from __future__ import annotations
 
 class HoopaUtils:
     
-    
     @staticmethod
     def print_error(contents: str):
         print("\033[95mERROR - %s\033[00m" % contents)

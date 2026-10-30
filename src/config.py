@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any, Generic, TypeVar
 import os
 import toml
-from utils import HoopaUtils
+from local_utils.utils import HoopaUtils
 from io import TextIOWrapper, SEEK_END
 
 # There's definitely a better way of doing this
