@@ -239,13 +239,15 @@ class DataSymbol(Symbol):
     
     def __init__(self, name: str = "", address: RegionalData = RegionalData(), length: RegionalData = RegionalData(), description: list[str] = []) -> None:
         super().__init__(to_screaming_snake_case(name), address, length, description)
-        
+        # If we pass a generic symbol as a param, and need to know what type of symbol it is later.
+        self.kind = SymbolKind(0)
 
 class FunctionSymbol(Symbol):
 
     def __init__(self, name: str = "", address: RegionalData = RegionalData(), length: RegionalData = RegionalData(), description: list[str] = []) -> None:
         super().__init__(to_upper_camel_case(name), address, length, description)
-        
+        # If we pass a generic symbol as a param, and need to know what type of symbol it is later.
+        self.kind = SymbolKind(1)
         
 
 
