@@ -33,11 +33,11 @@ class BaseConfigHolder(Generic[T]):
     _value_internal: T
     
     @property
-    def value(self) -> T | None:
+    def value(self) -> T:
         if self.is_set:
             return self._value_internal
         else:
-            return None
+            return None # type: ignore
     
     @value.setter
     def value(self, value):

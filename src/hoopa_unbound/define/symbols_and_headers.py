@@ -40,16 +40,20 @@ class ExtendedRegions(StrEnum):
     
     @staticmethod
     def from_name(name: str) -> ExtendedRegions:
-        map: dict[str, ExtendedRegions] = ExtendedRegions._value2member_map_ # pyright: ignore[reportAssignmentType] #
+        map: dict[str, ExtendedRegions] = ExtendedRegions._value2member_map_ # pyright: ignore[reportAssignmentType] # My python plugin wasn't convinced this would be a map of StrEnum and not Enum
         if name in map:
             return map[name]
         else:
             return ExtendedRegions.EU
+        
+        
+    
     
 
 class SymbolKind(Enum):
-    DATA = 0
-    FUNCTION = 1
+    ANY = 0
+    DATA = 1
+    FUNCTION = 2
     
     
 # It's a uhhhh regional dialect
@@ -62,15 +66,29 @@ class RegionalData(SupportsKV):
     
     May or may not be present for each region.
     '''
-    EU: int
-    NA: int
-    JP: int
+    EU: list[int]
+    NA: list[int]
+    JP: list[int]
     
     
-    def __init__(self, EU: int = -1, NA: int = -1, JP: int = -1) -> None:
-        self.EU = EU
-        self.NA = NA
-        self.JP = JP
+    def __init__(self, EU: int | list[int] = [], NA: int | list[int] = [], JP: int | list[int] = []) -> None:
+        # Allow initalizing from integers or lists of integers (some symbols can have more than one address)
+        
+        if type(EU) == int:
+            self.EU = [EU]
+        else:
+            self.EU = EU # type: ignore
+            
+        if type(NA) == int:
+            self.NA = [NA]
+        else:
+            self.NA = NA # type: ignore
+            
+        if type(JP) == int:
+            self.JP = [JP]
+        else:
+            self.JP = JP # type: ignore
+        
         
     
     @classmethod
@@ -80,8 +98,13 @@ class RegionalData(SupportsKV):
         '''
         new_instance = cls()
         for property_name, _ in new_instance:
-            if property_name in data:
-                setattr(new_instance, property_name, data[property_name])
+            corrected_name = property_name.replace("_", "-") # Match format seen in file
+            if corrected_name in data:
+                
+                if type(data[corrected_name]) == int:
+                    setattr(new_instance, property_name, [ data[corrected_name] ])
+                else:
+                    setattr(new_instance, property_name, data[corrected_name] )
                 
         return new_instance
                 
@@ -92,13 +115,14 @@ class RegionalData(SupportsKV):
         string_list: list[str] = []
         for region, value in self:
             # Only specified values will be returned in the list
-            if value >= 0:
-                string_list.append(f"{region}: {int_to_hex_str_formatted(value)}")
+            if len(value) == 1:
+                string_list.append(f"{region}: {int_to_hex_str_formatted(value[0])}")
+            elif len(value) > 1:
+                string_list.append(f"{region}:")
+                for address in value:
+                    string_list.append(f"  - {int_to_hex_str_formatted(address)}")
         
-        if indent > 0:
-            return indent_string_list(indent, string_list)
-        else:
-            return string_list
+        return indent_string_list(indent, string_list)
     
         
     def any_present(self) -> bool:
@@ -109,7 +133,7 @@ class RegionalData(SupportsKV):
         '''
         
         for _, value in self:
-            if value >= 0:
+            if len(value) > 0:
                 return True
         
         return False
@@ -136,42 +160,121 @@ class ExtendedRegionalData(RegionalData):
     '''
     RegionalData with extended region support. Only ever used for the symbol.yml file headers.
     '''
-    EU_ITCM: int = -1
-    NA_ITCM: int = -1
-    JP_ITCM: int = -1
-    EU_WRAM: int = -1
-    NA_WRAM: int = -1
-    JP_WRAM: int = -1
-    EU_RAM: int = -1
-    NA_RAM: int = -1
-    JP_RAM: int = -1
+    
+    # Appeasing the dataclass gods
+    EU_ITCM: list[int] = field(default_factory=lambda : [])
+    NA_ITCM: list[int] = field(default_factory=lambda : [])
+    JP_ITCM: list[int] = field(default_factory=lambda : [])
+    EU_WRAM: list[int] = field(default_factory=lambda : [])
+    NA_WRAM: list[int] = field(default_factory=lambda : [])
+    JP_WRAM: list[int] = field(default_factory=lambda : [])
+    EU_RAM: list[int] = field(default_factory=lambda : [])
+    NA_RAM: list[int] = field(default_factory=lambda : [])
+    JP_RAM: list[int] = field(default_factory=lambda : [])
+    
+    # Also appeasing the dataclass gods. For some reason it wouldn't accept that the __init__ from the baseclass didn't require these three arguments??? so???
+    def __init__(self, EU: int | list[int] = [], NA: int | list[int] = [], JP: int | list[int] = []) -> None:
+        # Allow initalizing from integers or lists of integers (some symbols can have more than one address)
+        if type(EU) == int:
+            self.EU = [EU]
+        else:
+            self.EU = EU # type: ignore
+    
+        if type(NA) == int:
+            self.NA = [NA]
+        else:
+            self.NA = NA # type: ignore
+    
+        if type(JP) == int:
+            self.JP = [JP]
+        else:
+            self.JP = JP # type: ignore
+        
+        # Now that these objects are lists, __dict__ (and thus the whole functionality of SupportsKV) can't see them
+        # So I have to explicitly set them at least once, just like with the config
+        # ... I have a sneaking suspicion this is pass-by-reference related...
+        self.EU_ITCM = []
+        self.NA_ITCM = []
+        self.JP_ITCM = []  
+        self.EU_RAM = []
+        self.NA_RAM = []
+        self.JP_RAM = []
+        self.EU_WRAM = []
+        self.NA_WRAM = []
+        self.JP_WRAM = []
+        
     
     
-    def __init__(self, EU: int = -1, NA: int = -1, JP: int = -1) -> None:
-        self.EU = EU
-        self.NA = NA
-        self.JP = JP
-    
-    
-    
-    def add_itcm_values(self, eu_itcm: int = -1, na_itcm: int = -1, jp_itcm: int = -1):
-        self.EU_ITCM = eu_itcm
-        self.NA_ITCM = na_itcm
-        self.JP_ITCM = jp_itcm
+    def add_itcm_values(self, eu_itcm: int | list[int] = [], na_itcm: int | list[int] = [], jp_itcm: int | list[int] = []):
+        if type(eu_itcm) == int:
+            self.EU_ITCM = [eu_itcm]
+        else:
+            self.EU_ITCM = eu_itcm # type: ignore
+        
+        if type(na_itcm) == int:
+            self.NA_ITCM = [na_itcm]
+        else:
+            self.NA_ITCM = na_itcm # type: ignore
+        
+        if type(jp_itcm) == int:
+            self.JP_ITCM = [jp_itcm]
+        else:
+            self.JP_ITCM = jp_itcm # type: ignore
         
         
-    def add_ram_values(self, eu_ram: int = -1, na_ram: int = -1, jp_ram: int = -1, eu_wram: int = -1, na_wram: int = -1, jp_wram: int = -1):
-        self.EU_RAM = eu_ram
-        self.NA_RAM = na_ram
-        self.JP_RAM = jp_ram
-        self.EU_WRAM = eu_wram
-        self.NA_WRAM = na_wram
-        self.JP_WRAM = jp_wram
+        
+    def add_ram_values(self, eu_ram: int | list[int] = [], na_ram: int | list[int] = [], jp_ram: int | list[int] = [], eu_wram: int | list[int] = [], na_wram: int | list[int] = [], jp_wram: int | list[int] = []):
+    
+        # Yeaaaah this is kinda ugly, I know.
+        if type(eu_ram) == int:
+            self.EU_RAM = [eu_ram]
+        else:
+            self.EU_RAM = eu_ram # type: ignore
+        
+        if type(na_ram) == int:
+            self.NA_RAM = [na_ram]
+        else:
+            self.NA_RAM = na_ram # type: ignore
+        
+        if type(jp_ram) == int:
+            self.JP_RAM = [jp_ram]
+        else:
+            self.JP_RAM = jp_ram # type: ignore
+        
+        if type(eu_wram) == int:
+            self.EU_WRAM = [eu_wram]
+        else:
+            self.EU_WRAM = eu_wram # type: ignore
+    
+        if type(na_wram) == int:
+            self.NA_WRAM = [na_wram]
+        else:
+            self.NA_WRAM = na_wram # type: ignore
+    
+        if type(jp_wram) == int:
+            self.JP_WRAM = [jp_wram]
+        else:
+            self.JP_WRAM = jp_wram # type: ignore
+    
+
+
+    def to_strings(self, indent: int = 0) -> list[str]:
+        strings = super().to_strings(indent)
+        return [i.replace("_", "-") for i in strings]
+        
+            
+        
+        
+        
+    def __str__(self) -> str:
+        return ", ".join(i.replace("_", "-") for i in self.to_strings(0))
+
 
 
 class Symbol():
     
     name: str
+    kind: SymbolKind
     address: RegionalData
     length: RegionalData
     description: list[str]
@@ -186,29 +289,6 @@ class Symbol():
         self.description = description
         
         
-        
-    def to_strings(self, indent: int = 0) -> list[str]:
-        string_list = []
-        
-        string_list.append(f"- name: {self.name}")
-        if self.address.any_present(): # Should be, in almost all cases
-            string_list.append("  address:")
-            string_list.extend(self.address.to_strings(2))
-            
-        if self.length.any_present():
-            string_list.append("  length:")
-            string_list.extend(self.length.to_strings(2))
-            
-        if len(self.description) > 0:
-            
-            if len(self.description) == 1:
-                string_list.append(f"  description: \"{self.description[0]}\"")
-            else:
-                string_list.append("  description: |-")
-                string_list.extend(indent_string_list(2, self.description))
-                
-        return string_list
-    
     
     @classmethod
     def from_data(cls, data: dict[str, Any]) -> Self:
@@ -218,20 +298,52 @@ class Symbol():
         self = cls()
         if "name" in data:
             self.name = data["name"]
-            
+
         if "address" in data:
             self.address = RegionalData.from_dict(data["address"])
-        
+
         if "length" in data:
             self.length = RegionalData.from_dict(data["length"])
-            
+
         if "description" in data:
             self.description = []
             for line in data["description"].split("\n"):
                 self.description.append(line)
-                
-        return self
 
+        return self
+    
+    
+    
+    def __str__(self) -> str:
+        return "\n".join(self.to_strings(0))
+        
+        
+        
+    def to_strings(self, indent: int = 0) -> list[str]:
+        string_list = []
+        
+        string_list.append(f"- name: {self.name}")
+        if self.address.any_present(): # Should be, in almost all cases
+            string_list.append("  address:")
+            string_list.extend(self.address.to_strings(indent + 4))
+            
+        if self.length.any_present():
+            string_list.append("  length:")
+            string_list.extend(self.length.to_strings(indent + 4))
+            
+        if len(self.description) > 0:
+            
+            if len(self.description) == 1:
+                string_list.append(f"  description: \"{self.description[0]}\"")
+            else:
+                string_list.append("  description: |-")
+                string_list.extend(indent_string_list(indent + 4, self.description))
+        
+        
+        return indent_string_list(indent, string_list)
+    
+    
+    
 
 # Both of these will eventually implement behavior to write the symbol to a header, hence the separated classes
         
@@ -240,14 +352,14 @@ class DataSymbol(Symbol):
     def __init__(self, name: str = "", address: RegionalData = RegionalData(), length: RegionalData = RegionalData(), description: list[str] = []) -> None:
         super().__init__(to_screaming_snake_case(name), address, length, description)
         # If we pass a generic symbol as a param, and need to know what type of symbol it is later.
-        self.kind = SymbolKind(0)
+        self.kind = SymbolKind.DATA
 
 class FunctionSymbol(Symbol):
 
     def __init__(self, name: str = "", address: RegionalData = RegionalData(), length: RegionalData = RegionalData(), description: list[str] = []) -> None:
         super().__init__(to_upper_camel_case(name), address, length, description)
         # If we pass a generic symbol as a param, and need to know what type of symbol it is later.
-        self.kind = SymbolKind(1)
+        self.kind = SymbolKind.FUNCTION
         
 
 
@@ -281,8 +393,9 @@ class SymbolsYamlFile:
     
     @classmethod
     def from_yaml(cls, yaml_file_path: str) -> Self:
-        
-        if not path.isfile(yaml_file_path) or not (yaml_file_path.endswith(".yml") or yaml_file_path.endswith(".yaml")):
+    
+        if not path.isfile(yaml_file_path) or not (yaml_file_path.endswith(".yml") or yaml_file_path.endswith(".yaml")) :
+            
             raise FileNotFoundError(f"HOOPA_UNBOUND - ERROR: SymbolsYamlFile attempted to be constructed with file at path [ {yaml_file_path} ], but the given path either doesn't exist, or is not a yaml (.yml) file!")
         
         self = cls()
@@ -386,6 +499,7 @@ class SymbolsYamlFile:
             return self
     
     
+    
     def __str__(self) -> str:
         strings_list = self.compose_yaml_header()
         if len(self.functions) > 0:
@@ -401,6 +515,52 @@ class SymbolsYamlFile:
         return "\n".join(strings_list)
         
         
+    
+    def get_symbol_by_name(self, name: str, kind: SymbolKind) -> Symbol | None:
+        '''
+        From a given name, finds and returns a symbol that has that name, if one is present.
+        '''
+        
+        if kind == SymbolKind.FUNCTION or kind == SymbolKind.ANY:
+            for sym in self.functions:
+                if sym.name == name:
+                    return sym
+        
+        if kind == SymbolKind.DATA or kind == SymbolKind.ANY:
+            for sym in self.data:
+                if sym.name == name:
+                    return sym
+                
+        return None
+    
+    
+    
+    def get_symbol_by_address(self, address: int, region: Region, kind: SymbolKind) -> Symbol | None:
+        '''
+        From a given address, finds and returns a symbol that has that name, if one is present.
+        '''
+
+        if kind == SymbolKind.FUNCTION or kind == SymbolKind.ANY:
+            for sym in self.functions:
+                target_address = getattr(sym.address, region)
+                # return if any address matches
+                for indv_addr in target_address:
+                    if indv_addr == address:
+                        return sym
+              
+
+        if kind == SymbolKind.DATA or kind == SymbolKind.ANY:
+            for sym in self.data:
+                target_address = getattr(sym.address, region)
+                for indv_addr in target_address:
+                    if indv_addr == address:
+                        return sym
+        
+
+        return None
+           
+           
+    
         
     def compose_yaml_header(self) -> list[str]:
         
