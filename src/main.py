@@ -1,7 +1,9 @@
 from hoopa_unbound.constants_and_config import CONFIG
 from hoopa_unbound.define.symbols_and_headers import SymbolsYamlFile, Symbol, SymbolKind, FunctionSymbol, DataSymbol, RegionalData, Region
 from hoopa.merge import try_add_symbol_to_yml
-from os import path
+from hoopa_unbound.define.utility import int_to_hex_str_formatted
+from os import path, scandir
+from yaml import safe_load
 import copy
 version = "0.0.1"
 
@@ -38,9 +40,29 @@ def tests_2():
     print(arm9_symbols.get_symbol_by_name("EuclideanNorm", SymbolKind.ANY))
     
     
+def debug_get_addresses_for_script():
+    
+    overlays = []
+    
+    for file in scandir(path.join(CONFIG.repository_path.value, "symbols")):
+        
+        if not file.name.endswith(".yml") or not file.is_file():
+            continue
+        
+        symbols_yaml = SymbolsYamlFile.from_yaml(file.path)
+        
+        java_enum = f"{symbols_yaml.name.upper()}({symbols_yaml.name}, new RegionalData({int_to_hex_str_formatted(symbols_yaml.address.EU[0])}, {int_to_hex_str_formatted(symbols_yaml.address.NA[0])}, {int_to_hex_str_formatted(symbols_yaml.address.JP[0])}), new RegionalData({int_to_hex_str_formatted(symbols_yaml.length.EU[0])}, {int_to_hex_str_formatted(symbols_yaml.length.NA[0])}, {int_to_hex_str_formatted(symbols_yaml.length.JP[0])}))"
+        print(java_enum)
+        
+        
+        
+        
+    
+    
 if __name__ == '__main__':
     print("\tHOOPA - V%s" % version)  
     
     #tests_1()
-    tests_2()
+    #tests_2()
+    debug_get_addresses_for_script()
     
