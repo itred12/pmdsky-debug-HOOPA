@@ -203,5 +203,3 @@ class SupportsKV:
             # Due to python shenanigans, the second set of parenthesis turns the argument into a tuple
             class_properties.append((field.name, getattr(self, field.name)))
         return iter(class_properties)
-    
-    

@@ -35,9 +35,11 @@ def tests_2():
     arm9_symbols = SymbolsYamlFile.from_yaml(
         path.join(CONFIG.repository_path.value, "symbols/arm9.yml")  # type: ignore
     )
-    print(arm9_symbols)
-    print(arm9_symbols.get_symbol_by_address(0x2005050, Region.NA, SymbolKind.ANY))
-    print(arm9_symbols.get_symbol_by_name("EuclideanNorm", SymbolKind.ANY))
+    #print(arm9_symbols)
+    print(arm9_symbols.data[0])
+    
+    #print(arm9_symbols.get_symbol_by_address(0x2005050, Region.NA, SymbolKind.ANY))
+    #print(arm9_symbols.get_symbol_by_name("EuclideanNorm", SymbolKind.ANY))
     
     
 def debug_get_addresses_for_script():
@@ -63,6 +65,6 @@ if __name__ == '__main__':
     print("\tHOOPA - V%s" % version)  
     
     #tests_1()
-    #tests_2()
-    debug_get_addresses_for_script()
+    tests_2()
+    #debug_get_addresses_for_script()
     
